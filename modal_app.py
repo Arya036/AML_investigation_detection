@@ -94,6 +94,7 @@ def fastapi_app():
     # These override the Windows paths from your local .env.
     os.environ["PS6_DB_PATH"] = "/data/fundflow.db"
     os.environ["CHROMA_DB_PATH"] = "/data/rag/vector_store"
+    os.environ["MLOPS_DATA_DIR"] = "/data/mlops"
     # Cache the downloaded embedding model on the Volume so it downloads ONCE.
     os.environ["HF_HOME"] = "/data/.cache/hf"
     os.environ["TRANSFORMERS_CACHE"] = "/data/.cache/hf"

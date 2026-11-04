@@ -15,6 +15,27 @@ PREDICTION_LOG_DIR = MODAL_DATA_DIR / "predictions"
 REFERENCE_PROFILE_DIR = MODAL_DATA_DIR / "reference_profiles"
 EVAL_SET_DIR = MODAL_DATA_DIR / "eval_sets"
 
+# MLflow DB path: on Modal, use shared Volume so all containers share runs & versions
+if os.environ.get("MODAL_TASK_ID"):
+    MLFLOW_DB_PATH = MODAL_DATA_DIR / "mlflow.db"
+else:
+    MLFLOW_DB_PATH = PROJECT_ROOT / "models" / "mlflow.db"
+
+
+def get_mlflow_db_path() -> Path:
+    """Get active MLflow SQLite path, checking Volume first on Modal with container fallback."""
+    if os.environ.get("MODAL_TASK_ID"):
+        if MLFLOW_DB_PATH.exists():
+            return MLFLOW_DB_PATH
+        alt_vol = Path("/data/mlflow.db")
+        if alt_vol.exists():
+            return alt_vol
+        container_db = PROJECT_ROOT / "models" / "mlflow.db"
+        if container_db.exists():
+            return container_db
+    return MLFLOW_DB_PATH
+
+
 # When running locally, use project-local paths
 if not os.environ.get("MODAL_TASK_ID"):
     PREDICTION_LOG_DIR = PROJECT_ROOT / "mlops" / "predictions"

@@ -25,6 +25,7 @@ import pandas  # noqa: F401 — used in type hint string
 from mlops.config import (
     MIN_SAMPLES_FOR_DRIFT,
     NUM_PSI_BINS,
+    PROJECT_ROOT,
     PSI_ALERT_THRESHOLD,
     PSI_WARNING_THRESHOLD,
     REFERENCE_PROFILE_DIR,
@@ -142,6 +143,10 @@ def load_reference_profile(path: Path | str | None = None) -> dict | None:
     """Load a reference profile from JSON. Returns None if not found."""
     if path is None:
         path = REFERENCE_PROFILE_DIR / "reference_profile.json"
+        if not path.exists():
+            alt = PROJECT_ROOT / "mlops" / "reference_profiles" / "reference_profile.json"
+            if alt.exists():
+                path = alt
     else:
         path = Path(path)
 

@@ -19,11 +19,20 @@ _model_loaded_at = None  # ISO timestamp for MLOps dashboard
 _prediction_logger = None  # lazy-init prediction logger
 
 
+def _resolve_model_paths() -> tuple[str, str]:
+    if os.environ.get("MODAL_TASK_ID"):
+        from pathlib import Path
+        vol_model = Path("/data/mlops/models/xgboost_fraud.pkl")
+        vol_meta = Path("/data/mlops/models/model_metadata.json")
+        if vol_model.exists() and vol_meta.exists():
+            return str(vol_model), str(vol_meta)
+    return os.path.join(MODEL_DIR, "xgboost_fraud.pkl"), os.path.join(MODEL_DIR, "model_metadata.json")
+
+
 def _load_model():
     global _model, _metadata, _model_loaded_at
     if _model is None:
-        model_path = os.path.join(MODEL_DIR, "xgboost_fraud.pkl")
-        meta_path  = os.path.join(MODEL_DIR, "model_metadata.json")
+        model_path, meta_path = _resolve_model_paths()
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"Model not found at {model_path}. Run `python -m models.trainer` first."

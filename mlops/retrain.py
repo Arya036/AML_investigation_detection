@@ -42,6 +42,7 @@ from features.graph_features import build_account_graph_features
 from mlops.config import (
     DECISION_THRESHOLD,
     EVAL_SET_DIR,
+    PROJECT_ROOT,
     MLFLOW_CHAMPION_ALIAS,
     MLFLOW_CHALLENGER_ALIAS,
     MLFLOW_EXPERIMENT_NAME,
@@ -94,6 +95,9 @@ def load_eval_set(name: str = "canonical") -> pd.DataFrame | None:
     """Load a labelled evaluation set. Returns None if not found."""
     path = EVAL_SET_DIR / f"{name}.parquet"
     if not path.exists():
+        alt_path = PROJECT_ROOT / "mlops" / "eval_sets" / f"{name}.parquet"
+        if alt_path.exists():
+            return pd.read_parquet(alt_path)
         logger.warning("Eval set '%s' not found at %s", name, path)
         return None
     return pd.read_parquet(path)
@@ -331,6 +335,10 @@ def retrain(
     # ----------------------------------------------------------------
     print("\n[7/9] Loading champion for comparison...")
     champion_path = os.path.join(MODEL_DIR, "xgboost_fraud.pkl")
+    if os.environ.get("MODAL_TASK_ID"):
+        vol_champ = Path("/data/mlops/models/xgboost_fraud.pkl")
+        if vol_champ.exists():
+            champion_path = str(vol_champ)
     old_metrics_drifted = None
     old_metrics_canonical = None
     new_metrics_canonical = None
@@ -389,7 +397,19 @@ def retrain(
 
     try:
         import mlflow
-        mlflow.set_tracking_uri(f"sqlite:///{Path(MODEL_DIR).parent / 'mlflow.db'}")
+        from mlops.config import MLFLOW_DB_PATH, MODAL_DATA_DIR, PROJECT_ROOT, get_mlflow_db_path
+
+        # On Modal, ensure Volume DB is initialized from container DB if not present
+        if os.environ.get("MODAL_TASK_ID"):
+            MODAL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+            if not MLFLOW_DB_PATH.exists():
+                container_db = PROJECT_ROOT / "models" / "mlflow.db"
+                if container_db.exists():
+                    import shutil
+                    shutil.copy2(container_db, MLFLOW_DB_PATH)
+
+        db_path = MLFLOW_DB_PATH if os.environ.get("MODAL_TASK_ID") else get_mlflow_db_path()
+        mlflow.set_tracking_uri(f"sqlite:///{db_path}")
         mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
         with mlflow.start_run() as run:
@@ -499,6 +519,15 @@ def retrain(
         with open(meta_path, "w") as f:
             json.dump(metadata, f, indent=2)
         print(f"       Model saved to {model_path}")
+
+        # On Modal, also save to Volume so other containers see the new champion
+        if os.environ.get("MODAL_TASK_ID"):
+            from mlops.config import MODAL_DATA_DIR
+            vol_models_dir = MODAL_DATA_DIR / "models"
+            vol_models_dir.mkdir(parents=True, exist_ok=True)
+            joblib.dump(model, vol_models_dir / "xgboost_fraud.pkl")
+            with open(vol_models_dir / "model_metadata.json", "w") as f:
+                json.dump(metadata, f, indent=2)
 
     print("=" * 60)
     print(f"  RETRAINING {'COMPLETE — MODEL PROMOTED' if promote else 'COMPLETE — NOT PROMOTED'}")

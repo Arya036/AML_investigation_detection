@@ -26,22 +26,67 @@ router = APIRouter(prefix="/mlops", tags=["MLOps"])
 _model_loaded_at: str | None = None
 
 
+def _reload_modal_volume() -> None:
+    """Reload Modal volume if running in Modal container to see updates from other containers."""
+    if os.environ.get("MODAL_TASK_ID"):
+        try:
+            import modal
+            vol = modal.Volume.from_name("sentinel-data", create_if_missing=False)
+            vol.reload()
+        except Exception as e:
+            logger.debug("Modal volume reload skipped/failed: %s", e)
+
+
+def _resolve_model_metadata_path() -> str | None:
+    """Find model_metadata.json (shared Volume first on Modal, then container/local)."""
+    if os.environ.get("MODAL_TASK_ID"):
+        vol_meta = Path("/data/mlops/models/model_metadata.json")
+        if vol_meta.exists():
+            return str(vol_meta)
+    meta_path = os.path.join(MODEL_DIR, "model_metadata.json")
+    if os.path.exists(meta_path):
+        return meta_path
+    return None
+
+
+def _resolve_model_path() -> str | None:
+    """Find xgboost_fraud.pkl (shared Volume first on Modal, then container/local)."""
+    if os.environ.get("MODAL_TASK_ID"):
+        vol_model = Path("/data/mlops/models/xgboost_fraud.pkl")
+        if vol_model.exists():
+            return str(vol_model)
+    model_path = os.path.join(MODEL_DIR, "xgboost_fraud.pkl")
+    if os.path.exists(model_path):
+        return model_path
+    return None
+
+
 def _get_model_metadata() -> dict:
     """Read model_metadata.json from disk."""
-    meta_path = os.path.join(MODEL_DIR, "model_metadata.json")
-    if not os.path.exists(meta_path):
+    meta_path = _resolve_model_metadata_path()
+    if not meta_path or not os.path.exists(meta_path):
         return {}
-    with open(meta_path, "r") as f:
-        return json.load(f)
+    try:
+        with open(meta_path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error("Failed to read model metadata from %s: %s", meta_path, e)
+        return {}
 
 
 def _model_file_mtime() -> str | None:
-    """Get modification time of xgboost_fraud.pkl."""
-    model_path = os.path.join(MODEL_DIR, "xgboost_fraud.pkl")
-    if not os.path.exists(model_path):
+    """Get modification time of xgboost_fraud.pkl, falling back to retrained_at if epoch is 0."""
+    model_path = _resolve_model_path()
+    if not model_path or not os.path.exists(model_path):
         return None
-    mtime = os.path.getmtime(model_path)
-    return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+    try:
+        mtime = os.path.getmtime(model_path)
+        if mtime <= 86400:
+            meta = _get_model_metadata()
+            return meta.get("retrained_at")
+        return datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+    except Exception:
+        return None
 
 
 # ------------------------------------------------------------------
@@ -53,6 +98,7 @@ def mlops_status():
     """Current model version, metrics, and load status."""
     global _model_loaded_at
     try:
+        _reload_modal_volume()
         meta = _get_model_metadata()
         metrics = meta.get("metrics", {})
 
@@ -61,9 +107,9 @@ def mlops_status():
         if not mlflow_version:
             try:
                 import mlflow
-                from mlops.config import MLFLOW_CHAMPION_ALIAS, MLFLOW_REGISTERED_MODEL_NAME
+                from mlops.config import MLFLOW_CHAMPION_ALIAS, MLFLOW_REGISTERED_MODEL_NAME, get_mlflow_db_path
 
-                db_path = Path(MODEL_DIR).parent / "mlflow.db"
+                db_path = get_mlflow_db_path()
                 if db_path.exists():
                     mlflow.set_tracking_uri(f"sqlite:///{db_path}")
                     client = mlflow.MlflowClient()
@@ -173,10 +219,11 @@ def mlops_predictions_summary():
 def mlops_models():
     """List registered model versions from MLflow."""
     try:
+        _reload_modal_volume()
         import mlflow
-        from mlops.config import MLFLOW_REGISTERED_MODEL_NAME
+        from mlops.config import MLFLOW_REGISTERED_MODEL_NAME, get_mlflow_db_path
 
-        db_path = Path(MODEL_DIR).parent / "mlflow.db"
+        db_path = get_mlflow_db_path()
         if not db_path.exists():
             return {
                 "models": [],
@@ -259,14 +306,7 @@ def mlops_reload():
         predictor._shap_explainer = None
 
         # Attempt Modal volume reload
-        if os.environ.get("MODAL_TASK_ID"):
-            try:
-                import modal
-                vol = modal.Volume.from_name("sentinel-data", create_if_missing=False)
-                vol.reload()
-                logger.info("Modal Volume reloaded.")
-            except Exception as ve:
-                logger.warning("Modal Volume reload failed: %s", ve)
+        _reload_modal_volume()
 
         # Force re-load
         predictor._load_model()
