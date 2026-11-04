@@ -103,3 +103,41 @@ def fastapi_app():
     # Import your existing FastAPI instance (api/main.py -> `app`).
     from api.main import app as web_app
     return web_app
+
+
+# ---------------------------------------------------------------------------
+# 3. Retraining function: separate from web container (longer timeout, more RAM)
+# ---------------------------------------------------------------------------
+@app.function(
+    image=image,
+    volumes={"/data": data_volume},
+    secrets=[modal.Secret.from_name("sentinel-secrets")],
+    cpu=2.0,
+    memory=4096,           # 4 GB for training
+    timeout=1800,          # 30 minutes
+)
+def retrain_model(generate_drift: bool = False, amount_shift: float = 1.5, night_boost: float = 0.30):
+    """Run the retraining pipeline as a separate Modal function.
+
+    Usage:
+        modal run modal_app.py::retrain_model
+        modal run modal_app.py::retrain_model --generate-drift True
+    """
+    import os
+    os.environ["PS6_DB_PATH"] = "/data/fundflow.db"
+    os.environ["MLOPS_DATA_DIR"] = "/data/mlops"
+
+    from mlops.retrain import retrain
+    result = retrain(
+        drifted=generate_drift,
+        shift_config={
+            "amount_shift_factor": amount_shift,
+            "night_hour_boost": night_boost,
+        } if generate_drift else None,
+    )
+
+    # Commit the volume so the web container can see the new model
+    data_volume.commit()
+    print("Volume committed. Call POST /mlops/reload on the web container to load the new model.")
+
+    return result

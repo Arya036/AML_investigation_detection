@@ -36,3 +36,6 @@ ruff>=0.4.0
 
 # PART B — Eval
 # ragas>=0.1.7
+
+# MLOps — Experiment tracking & model registry
+mlflow>=2.10.0

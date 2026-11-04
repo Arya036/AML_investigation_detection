@@ -15,10 +15,12 @@ from features.engineering import engineer_single, get_feature_columns
 
 _model = None
 _metadata = None
+_model_loaded_at = None  # ISO timestamp for MLOps dashboard
+_prediction_logger = None  # lazy-init prediction logger
 
 
 def _load_model():
-    global _model, _metadata
+    global _model, _metadata, _model_loaded_at
     if _model is None:
         model_path = os.path.join(MODEL_DIR, "xgboost_fraud.pkl")
         meta_path  = os.path.join(MODEL_DIR, "model_metadata.json")
@@ -29,6 +31,8 @@ def _load_model():
         _model = joblib.load(model_path)
         with open(meta_path) as f:
             _metadata = json.load(f)
+        from datetime import datetime, timezone
+        _model_loaded_at = datetime.now(timezone.utc).isoformat()
     return _model, _metadata
 
 
@@ -76,6 +80,22 @@ def predict_single(txn: dict, account_history: pd.DataFrame = None,
     # ── Real SHAP values (TreeExplainer, cached at module level) ────────────
     # Returns true log-odds contributions. Explainer loads once on first call.
     top_features = _get_shap_top_features(features, feature_cols)
+
+    # ── MLOps prediction logging (best-effort) ────────────────────────────
+    global _prediction_logger
+    try:
+        if _prediction_logger is None:
+            from mlops.prediction_logger import PredictionLogger
+            _prediction_logger = PredictionLogger()
+        _prediction_logger.log(
+            account_id=txn.get("sender_account", "unknown"),
+            fraud_probability=fraud_prob,
+            risk_tier=risk_tier,
+            feature_values={col: float(features.get(col, 0)) for col in feature_cols},
+            model_version=metadata.get("mlflow_version", metadata.get("model_type", "unknown")),
+        )
+    except Exception:
+        pass  # Never let logging break predictions
 
     return {
         "fraud_probability": round(fraud_prob, 4),

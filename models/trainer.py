@@ -26,6 +26,14 @@ from config import MODEL_DIR, PROCESSED_DATA_PATH, XGBOOST_PARAMS
 from features.engineering import engineer_features, get_feature_columns
 from features.graph_features import build_account_graph_features, load_graph_features
 
+# MLflow (optional -- logs experiments when available)
+try:
+    import mlflow
+    import mlflow.xgboost
+    _HAS_MLFLOW = True
+except ImportError:
+    _HAS_MLFLOW = False
+
 
 DECISION_THRESHOLD = 0.70
 
@@ -339,6 +347,69 @@ def train(data_path: str = None, model_dir: str = None, sample_size: int = None)
 
     print(f"\n  Model saved:    {model_path}")
     print(f"  Metadata saved: {meta_path}")
+
+    # -- MLflow logging (optional) ------------------------------------------
+    if _HAS_MLFLOW:
+        try:
+            from pathlib import Path as _Path
+            from mlops.config import (
+                MLFLOW_EXPERIMENT_NAME,
+                MLFLOW_REGISTERED_MODEL_NAME,
+                MLFLOW_CHAMPION_ALIAS,
+            )
+            from mlops.drift_detector import build_reference_profile, save_reference_profile
+            from mlops.retrain import save_eval_set
+
+            mlflow.set_tracking_uri(f"sqlite:///{_Path(model_dir).parent / 'mlflow.db'}")
+            mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+            git_sha = os.environ.get("SENTINEL_GIT_SHA", "unknown")
+
+            with mlflow.start_run() as run:
+                mlflow.log_params({
+                    "n_estimators": params["n_estimators"],
+                    "max_depth": params["max_depth"],
+                    "learning_rate": params["learning_rate"],
+                    "scale_pos_weight": round(scale_pos_weight, 2),
+                    "training_rows": int(len(X_train)),
+                    "test_rows": int(len(X_test)),
+                    "git_sha": git_sha,
+                    "feature_count": len(feature_cols),
+                    "shap_method": "native_pred_contribs",
+                })
+                mlflow.log_metrics({
+                    "auc_roc": round(float(leakage_report["auc_roc"]), 4),
+                    "auc_pr": round(float(leakage_report["auc_pr"]), 4),
+                    "precision_070": round(float(canonical_70["precision"]), 4),
+                    "recall_070": round(float(canonical_70["recall"]), 4),
+                    "f1_070": round(float(canonical_70["f1"]), 4),
+                    "fraud_rate": round(full_fraud_rate, 6),
+                })
+                mlflow.xgboost.log_model(model, artifact_path="model")
+                mlflow.log_artifact(meta_path)
+
+                ref_profile = build_reference_profile(df_train_feat, feature_cols)
+                ref_path = save_reference_profile(ref_profile)
+                mlflow.log_artifact(str(ref_path))
+
+                eval_path = save_eval_set(test_raw, "canonical")
+                mlflow.log_artifact(str(eval_path))
+
+                schema = {"feature_columns": feature_cols, "feature_count": len(feature_cols), "shap_method": "native_pred_contribs"}
+                schema_path = os.path.join(model_dir, "feature_schema.json")
+                with open(schema_path, "w") as sf:
+                    json.dump(schema, sf, indent=2)
+                mlflow.log_artifact(schema_path)
+
+                model_uri = f"runs:/{run.info.run_id}/model"
+                rv = mlflow.register_model(model_uri, MLFLOW_REGISTERED_MODEL_NAME)
+                client = mlflow.MlflowClient()
+                client.set_registered_model_alias(MLFLOW_REGISTERED_MODEL_NAME, MLFLOW_CHAMPION_ALIAS, rv.version)
+                print(f"  MLflow run:     {run.info.run_id}")
+                print(f"  Model v{rv.version} aliased as \'{MLFLOW_CHAMPION_ALIAS}\'")
+
+        except Exception as mlflow_err:
+            print(f"  MLflow logging failed (non-fatal): {mlflow_err}")
+
     print("=" * 60)
     print("  TRAINING COMPLETE")
     print("=" * 60)

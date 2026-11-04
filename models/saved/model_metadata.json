@@ -53,74 +53,177 @@
   ],
   "feature_count": 49,
   "decision_threshold": 0.7,
+  "evaluation_protocol": "leakage_safe_time_split_train_graph_only",
   "metrics": {
-    "auc_roc": 0.9666,
-    "auc_pr": 0.7224,
-    "precision": 0.2896,
-    "recall": 0.8119,
-    "f1": 0.4269,
+    "auc_roc": 0.947,
+    "auc_pr": 0.7069,
+    "precision": 0.3372,
+    "recall": 0.8327,
+    "f1": 0.4801,
     "confusion_matrix": [
       [
-        94339,
-        3662
+        86837,
+        8071
       ],
       [
-        346,
-        1493
+        825,
+        4107
       ]
     ]
   },
   "metrics_threshold_050": {
-    "precision": 0.1906,
-    "recall": 0.8597,
-    "f1": 0.3121
+    "precision": 0.2665,
+    "recall": 0.8656,
+    "f1": 0.4076
+  },
+  "metrics_leakage_safe": {
+    "protocol": "leakage_safe_time_split_train_graph_only",
+    "rows": 99840,
+    "fraud_rows": 4932,
+    "fraud_rate": 0.049399,
+    "auc_roc": 0.946994,
+    "auc_pr": 0.706864,
+    "threshold_050": {
+      "threshold": 0.5,
+      "precision": 0.266529,
+      "recall": 0.865572,
+      "f1": 0.407561,
+      "confusion_matrix": [
+        [
+          83160,
+          11748
+        ],
+        [
+          663,
+          4269
+        ]
+      ]
+    },
+    "threshold_070": {
+      "threshold": 0.7,
+      "precision": 0.337247,
+      "recall": 0.832725,
+      "f1": 0.48007,
+      "confusion_matrix": [
+        [
+          86837,
+          8071
+        ],
+        [
+          825,
+          4107
+        ]
+      ]
+    },
+    "split": {
+      "type": "time_split",
+      "test_size": 0.2,
+      "split_index": 399356,
+      "train_start": "2026-03-01 01:00:15",
+      "train_end": "2026-03-15 20:32:26",
+      "test_start": "2026-03-15 20:32:26",
+      "test_end": "2026-03-31 23:55:24",
+      "train_rows": 399356,
+      "test_rows": 99840,
+      "graph_feature_accounts": 700419,
+      "graph_features_source": "train_window_only"
+    },
+    "scale_pos_weight": 92.657598
+  },
+  "metrics_random_split": {
+    "protocol": "random_stratified_split",
+    "rows": 99840,
+    "fraud_rows": 1839,
+    "fraud_rate": 0.018419,
+    "auc_roc": 0.970132,
+    "auc_pr": 0.731495,
+    "threshold_050": {
+      "threshold": 0.5,
+      "precision": 0.200476,
+      "recall": 0.870038,
+      "f1": 0.325866,
+      "confusion_matrix": [
+        [
+          91620,
+          6381
+        ],
+        [
+          239,
+          1600
+        ]
+      ]
+    },
+    "threshold_070": {
+      "threshold": 0.7,
+      "precision": 0.284492,
+      "recall": 0.831974,
+      "f1": 0.423999,
+      "confusion_matrix": [
+        [
+          94153,
+          3848
+        ],
+        [
+          309,
+          1530
+        ]
+      ]
+    },
+    "split": {
+      "type": "random_stratified",
+      "test_size": 0.2,
+      "train_rows": 399356,
+      "test_rows": 99840,
+      "graph_feature_accounts": 875215
+    },
+    "scale_pos_weight": 53.282452
   },
   "graph_features_used": true,
-  "graph_feature_accounts": 875215,
+  "graph_feature_accounts": 700419,
   "feature_importance": {
-    "type_UPI": 0.15377938747406006,
-    "type_DEPOSIT": 0.13354849815368652,
-    "is_cross_bank_upi": 0.11420206725597382,
-    "type_NEFT": 0.11334178596735,
-    "upi_new_recv_risk": 0.10688067972660065,
-    "type_ATM": 0.08534008264541626,
-    "receiver_is_pure_receiver": 0.083600252866745,
-    "is_night": 0.05906673148274422,
-    "amount_log": 0.024470722302794456,
-    "hour_of_day": 0.019612234085798264,
-    "sender_total_unique_receivers": 0.01836472377181053,
-    "receiver_unique_senders_total": 0.015979329124093056,
-    "receiver_total_recv_count": 0.010369619354605675,
-    "sender_avg_amount": 0.00969590526074171,
-    "receiver_mule_score": 0.005908375605940819,
-    "day_of_week": 0.004630370996892452,
-    "type_IMPS": 0.00436707166954875,
-    "amount_bucket": 0.004179314710199833,
-    "near_100k_threshold": 0.0032966863363981247,
-    "near_50k_threshold": 0.003277859417721629,
-    "is_cross_branch": 0.0030365600250661373,
-    "near_1m_threshold": 0.002652310999110341,
-    "channel_internet": 0.002613615244626999,
-    "is_weekend": 0.0025316907558590174,
-    "is_round_1k": 0.0024446023162454367,
-    "near_any_threshold": 0.0024231127463281155,
-    "channel_mobile": 0.002361927879974246,
-    "sender_unique_receivers_1h": 0.0021820913534611464,
-    "sender_mule_score": 0.0018572822446003556,
-    "is_round_10k": 0.0014908829471096396,
-    "sender_passthrough_ratio": 0.001457350910641253,
-    "time_since_last_txn_min": 0.0009127947851084173,
-    "sender_txn_count_24h": 0.0001240257843164727,
+    "type_UPI": 0.22189150750637054,
+    "type_DEPOSIT": 0.18663711845874786,
+    "is_cross_bank_upi": 0.1272658407688141,
+    "type_ATM": 0.07643931359052658,
+    "type_NEFT": 0.07551851123571396,
+    "receiver_is_pure_receiver": 0.06740240007638931,
+    "upi_new_recv_risk": 0.06160236522555351,
+    "is_night": 0.03738730400800705,
+    "amount_log": 0.0194453913718462,
+    "receiver_total_recv_count": 0.018018469214439392,
+    "hour_of_day": 0.0157198254019022,
+    "sender_mule_score": 0.015120698139071465,
+    "sender_avg_amount": 0.008389316499233246,
+    "amount_bucket": 0.007354619912803173,
+    "sender_total_unique_receivers": 0.006693065166473389,
+    "receiver_unique_senders_total": 0.005700284149497747,
+    "day_of_week": 0.005688372068107128,
+    "near_any_threshold": 0.0053557525388896465,
+    "near_100k_threshold": 0.0042260573245584965,
+    "type_IMPS": 0.0041830833069980145,
+    "channel_internet": 0.003378774505108595,
+    "receiver_mule_score": 0.003371443599462509,
+    "is_cross_branch": 0.0033478660043329,
+    "time_since_last_txn_min": 0.003006092505529523,
+    "near_50k_threshold": 0.0029620935674756765,
+    "is_weekend": 0.0029111229814589024,
+    "near_1m_threshold": 0.0028629943262785673,
+    "channel_mobile": 0.002741899574175477,
+    "is_round_1k": 0.0017810360295698047,
+    "sender_in_ring": 0.0011243100743740797,
+    "sender_passthrough_ratio": 0.0009146208176389337,
+    "is_round_10k": 0.0008035273640416563,
+    "sender_txn_count_1h": 0.0007549442816525698,
     "is_new_receiver": 0.0,
-    "sender_txn_count_1h": 0.0,
+    "sender_txn_count_24h": 0.0,
     "sender_std_amount": 0.0,
     "amount_deviation": 0.0,
+    "sender_unique_receivers_1h": 0.0,
     "hour_velocity_ratio": 0.0,
     "high_velocity_1h": 0.0,
     "high_velocity_24h": 0.0,
     "rapid_succession": 0.0,
     "amount_gt_5x_avg": 0.0,
-    "sender_in_ring": 0.0,
     "sender_is_new_account": 0.0,
     "receiver_in_ring": 0.0,
     "receiver_is_suspected_mule": 0.0,
@@ -131,7 +234,7 @@
   "training_rows": 399356,
   "test_rows": 99840,
   "fraud_rate": 0.018422,
-  "scale_pos_weight": 53.28,
+  "scale_pos_weight": 92.66,
   "params": {
     "n_estimators": 200,
     "max_depth": 6,
@@ -143,6 +246,24 @@
     "eval_metric": "aucpr",
     "random_state": 42,
     "n_jobs": -1,
+    "scale_pos_weight": 92.65759849906192
+  },
+  "benchmark_params_random_split": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "min_child_weight": 5,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "objective": "binary:logistic",
+    "eval_metric": "aucpr",
+    "random_state": 42,
+    "n_jobs": -1,
     "scale_pos_weight": 53.28245208644828
-  }
+  },
+  "leakage_notes": [
+    "random_stratified_split is optimistic and kept only for comparison",
+    "canonical metrics come from leakage_safe_time_split_train_graph_only",
+    "graph features for canonical evaluation are built from train window only"
+  ]
 }

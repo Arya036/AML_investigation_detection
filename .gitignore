@@ -89,3 +89,10 @@ node_modules/
 dist/
 .cache/
 *.local
+
+# 🔧 MLOps generated data ─────────────────────────────────────────
+mlruns/
+mlflow.db
+mlops/predictions/
+mlops/reference_profiles/
+mlops/eval_sets/

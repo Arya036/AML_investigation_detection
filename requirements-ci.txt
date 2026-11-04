@@ -1,0 +1,20 @@
+# ============================================================
+# Sentinel AI — CI Requirements (minimal, no torch)
+# ============================================================
+# Excludes sentence-transformers, chromadb, shap, torch — they're
+# multi-GB and not needed for pipeline/guardrail tests.
+fastapi>=0.111.0
+uvicorn>=0.29.0
+pandas==2.2.0
+numpy==1.26.3
+scikit-learn==1.4.0
+xgboost==2.0.3
+networkx==3.2.1
+joblib==1.3.2
+python-dotenv>=1.0.0
+mlflow>=2.10.0
+pytest>=8.0.0
+ruff>=0.4.0
+httpx>=0.27.0
+pydantic>=2.0.0
+

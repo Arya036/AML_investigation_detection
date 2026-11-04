@@ -5,6 +5,7 @@ import Investigate from './pages/Investigate';
 import GraphView   from './pages/GraphView';
 import RAGLookup   from './pages/RAGLookup';
 import Alerts      from './pages/Alerts';
+import MLOps       from './pages/MLOps';
 import './index.css';
 
 export default function App() {
@@ -23,6 +24,8 @@ export default function App() {
         return <RAGLookup />;
       case 'alerts':
         return <Alerts setPage={setPage} setInitialAccount={setInitialAccount} />;
+      case 'mlops':
+        return <MLOps />;
       default:
         return <Dashboard setPage={setPage} setInitialAccount={setInitialAccount} />;
     }

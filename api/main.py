@@ -87,6 +87,14 @@ app.add_middleware(
 )
 
 
+# ── MLOps dashboard routes ────────────────────────────────
+try:
+    from mlops.dashboard import router as mlops_router
+    app.include_router(mlops_router)
+except ImportError:
+    pass  # mlops module not available
+
+
 # ── DB helper ────────────────────────────────────────────
 def _get_db():
     conn = sqlite3.connect(DB_PATH)

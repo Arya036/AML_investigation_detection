@@ -1,4 +1,4 @@
-import { LayoutDashboard, Search, GitBranch, BookOpen, Bell, Shield, LogOut } from 'lucide-react';
+import { LayoutDashboard, Search, GitBranch, BookOpen, Bell, Shield, LogOut, Activity } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { id: 'graph',       icon: GitBranch,      label: 'Graph View' },
   { id: 'rag',         icon: BookOpen,       label: 'Regulations' },
   { id: 'alerts',      icon: Bell,           label: 'Alerts' },
+  { id: 'mlops',       icon: Activity,       label: 'MLOps' },
 ];
 
 export default function Sidebar({ page, setPage }) {
